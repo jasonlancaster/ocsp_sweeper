@@ -1,0 +1,92 @@
+#!/usr/bin/perl
+# Nagios OCSP init script 1.0
+# Written 6/8/03 by Jason Lancaster <jlancaster+ocsp@gmail.com>
+
+use strict;
+
+# command line to execute ocsp_sweeper
+my $ocsp_bin = '/usr/local/nagios/bin/ocsp_sweeper.pl -f /usr/local/nagios/ramdisk/ocsp.cmd -H 255.255.255.255 -dt5';
+$ocsp_bin .= ' > /dev/null &';
+
+# command line to execute myself
+my $name = "/etc/rc.d/init.d/ocsp";
+
+# The following should be set to the process name ocsp runs as. 
+# For most systems you should not need to change this.
+my $process = "ocsp_sweeper";
+
+# OCSP is built to run as a specific user, therefore we can assume it will only
+# run as the following user.
+my $user = "root";
+
+#
+# DO NOT change anything below this line.
+#
+
+my $rc;
+my @pid;
+
+sub status() {
+	my ($status, $d);
+
+    open (CMD, "ps auxc |");
+    while (<CMD>) {
+		if (/^$user.*$process.*$/) {
+            if (/^*\s+(\d+)\s*/) { print $pid[$d]; $pid[$d++] = "$1"; }
+		}
+    }
+    close (CMD);
+
+    if (defined $pid[0]) {
+		if ($rc == 1) { print "OCSP already running!\n"; }
+		elsif ($rc == 2) { &stop(); }
+        elsif ($rc == 3) { system("$name stop; $name start"); }
+		elsif ($rc == 4) { printf("PID:%s\n", join("\nPID:", @pid)); }
+    } elsif (not defined $pid[0]) {
+		if ($rc == 1) { &start(); }
+		elsif ($rc == 2) { print "OCSP already stopped\n"; }
+		elsif ($rc == 3) { print "OCSP already stopped.\n"; system("$name start"); }
+		elsif ($rc == 4) { printf("OCSP process not found!\n"); }
+    }
+
+	exit 0;
+}
+
+sub start {
+    # load ocsp into the background
+	system("$ocsp_bin");
+	print("OCSP started\n");
+	&status($rc=4);
+	exit 0;
+}
+
+sub stop {
+	my ($id, $d);
+	print("Stopping OCSP...\n");
+	foreach $id (@pid) {
+		qx{kill -9 $id};
+		printf "Killed process %s\n", $id;
+		undef @pid[$d++];
+	}
+	if ($rc == 3) { &start(); }
+	else { print "\n"; }
+	exit 0;
+}
+
+sub process_args {
+    # Process command line arguments
+    my $arg;
+
+    foreach $arg (@ARGV) {
+        if ($arg =~ /^start$/) { 	&status($rc=1); }
+        if ($arg =~ /^stop$/) { 	&status($rc=2); }
+        if ($arg =~ /^restart$/) { 	&status($rc=3); }
+        if ($arg =~ /^status$/) { 	&status($rc=4); }
+    }
+    
+    if ($arg eq "") { printf "Please specify start|stop|restart|status\n\n"; }
+}
+
+&process_args();
+
+exit 1;
