@@ -3,7 +3,7 @@ my $info = <<INFO;
 OCSP Sweeper 1.1
 This program will open an ocsp fifo and parse it every N seconds and trigger a send_nsca event at X bytes
 Written by Adam Douglass and Jason Lancaster
-Last modified 6/08/03 by Jason Lancaster <jlancaster+ocsp@gmail.com>
+Last modified 6/08/03 by Jason Lancaster <jlancaster+ocsp\@gmail.com>
 
 Usage: $0 -f <log_file> -H <host_address> [-n nsca_location] [-c nsca_cfg] [-t time] [-l limit] [-d]
 
